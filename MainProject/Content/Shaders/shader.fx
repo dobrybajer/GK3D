@@ -23,20 +23,41 @@ float	SpecularIntensities[NUM_LIGHTS];
 float	SpecularPower[NUM_LIGHTS];
 float	SpotAngle[NUM_LIGHTS];
 
+/* Texture */
+float4x4 TextureMatrix;
+
+texture Texture;
+sampler2D TextureSampler : register(s0)
+= sampler_state {
+	Texture = (Texture);
+};
+
+texture Texture1;
+sampler2D Texture1Sampler : register(s1)
+= sampler_state {
+	Texture = (Texture1);
+};
+
 struct VertexShaderInput
 {
 	float4 Position : POSITION0;
-	float3 Normal : NORMAL0;
+	float3 Normal : NORMAL;
+	float4 TextureCoordinate : TEXCOORD0;
 };
 
 struct VertexShaderOutput
 {
 	float4 Position : POSITION0;
 	float3 Normal : TEXCOORD0;
-	float3 ViewDirection : TEXCOORD1;
-	float3 WorldPosition : TEXCOORD2;
+	float4 TextureCoordinate : TEXCOORD1;
+	float3 ViewDirection : TEXCOORD2;
+	float3 WorldPosition : TEXCOORD3;
 };
 
+
+/*----------------------------------------------------------------*/
+/*-------------------- Functions - Lights -----------------------*/
+/*----------------------------------------------------------------*/
 float DoAttenuation(float d)
 {
 	float att = 1.0f / (0.8f + 0.001 * d + 0.00001 * d * d);
@@ -122,9 +143,22 @@ float4 CalculateLights(VertexShaderOutput input)
 	return outColor;
 }
 
+
+/*----------------------------------------------------------------*/
+/*-------------------- Functions - Fog -----------------------*/
+/*----------------------------------------------------------------*/
+//float ComputeFogFactor(float d)
+//{
+//	return clamp((d - FogStart) / (FogEnd - FogStart), 0, 1);
+//}
+
+/*----------------------------------------------------------------*/
+/*-------------------- Stage 1 - Shader functions ---------------------*/
+/*----------------------------------------------------------------*/
+
 VertexShaderOutput MainVertexShader(VertexShaderInput input)
 {
-	VertexShaderOutput output;
+	VertexShaderOutput output = (VertexShaderOutput)0;
 
 	input.Position.w = 1;
 
@@ -144,6 +178,108 @@ float4 MainPixelShader(VertexShaderOutput input) : Color0
 	return saturate(CalculateLights(input) + AmbientColor * AmbientIntensity);
 }
 
+/*----------------------------------------------------------------*/
+/*-------------------- VertexShader Textured ---------------------*/
+/*----------------------------------------------------------------*/
+
+VertexShaderOutput VertexShaderTexturedFunction(VertexShaderInput input)
+{
+	VertexShaderOutput output = (VertexShaderOutput)0;
+
+	input.Position.w = 1;
+
+	float4 worldPosition = mul(input.Position, World);
+	float4x4 viewProjection = mul(View, Projection);
+
+	output.Position = mul(worldPosition, viewProjection);
+	output.Normal = normalize(mul(input.Normal, (float3x3)World)).xyz;
+	output.WorldPosition = worldPosition.xyz;
+
+	input.TextureCoordinate.w = 1;
+	output.TextureCoordinate = mul(input.TextureCoordinate, TextureMatrix);
+
+	//output.FogFactor = ComputeFogFactor(length(CameraPosition - (float3)worldPosition));
+
+	return output;
+}
+
+//VertexShaderOutput VertexShaderTexturedTranslatedFunction(VertexShaderInput input)
+//{
+//	VertexShaderOutput output = (VertexShaderOutput)0;
+//
+//	input.Position.w = 1;
+//
+//	float4 worldPosition = mul(input.Position, World);
+//	float4 viewPosition = mul(worldPosition, View);
+//	output.Position = mul(viewPosition, Projection);
+//
+//	float3 normal = normalize(mul(input.Normal, (float3x3)World)).xyz;
+//
+//	output.Normal = normal;
+//	output.WorldPosition = worldPosition.xyz;
+//	//output.InputColor = input.InputColor;
+//
+//	input.TextureCoordinate.w = 1;
+//	output.TextureCoordinate = mul(worldPosition, TextureMatrix);
+//
+//	output.FogFactor = ComputeFogFactor(length(CameraPosition - (float3)worldPosition));
+//
+//	return output;
+//}
+
+/*----------------------------------------------------------------*/
+/*-------------------- PixelShader Textured ----------------------*/
+/*----------------------------------------------------------------*/
+float4 PixelShaderTexturedFunction(VertexShaderOutput input) : Color0
+{
+	float4 outColor = CalculateLights(input);
+
+	float4 textureColor = tex2Dbias(TextureSampler, input.TextureCoordinate);
+	float alpha = textureColor.a;
+
+	if (alpha == 0.0)
+	{
+		return textureColor;
+	}
+
+	//float4 fogColor = float4(0.5f, 0.5f, 0.5f, 1.0f);
+	//float4 finalTextureColor = input.FogFactor * fogColor + (1.0 - input.FogFactor) * textureColor;
+
+	float4 finalTextureColor = textureColor;
+
+	return saturate(textureColor + AmbientColor * AmbientIntensity + outColor);
+		//saturate(
+		//FogEnabled ? finalTextureColor : textureColor /* input.InputColor*/
+		//+ AmbientColor * AmbientIntensity + outColor);
+}
+
+
+/*----------------------------------------------------------------*/
+/*----------------- PixelShader MultiTextured --------------------*/
+/*----------------------------------------------------------------*/
+//float4 PixelShaderMultiTexturedFunction(VertexShaderOutput input) : Color0
+//{
+//	float4 outColor = CalculateLights(input);
+//
+//	float4 secondTextureColor = tex2Dbias(Texture1Sampler, input.TextureCoordinate);
+//	float alpha = secondTextureColor.a;
+//	secondTextureColor.a = 1;
+//	float4 textureColor = tex2Dbias(TextureSampler, input.TextureCoordinate);
+//	textureColor.a = 1;
+//
+//	float4 texturesCompositionColor = alpha * secondTextureColor + (1 - alpha) * textureColor;
+//	float4 fogColor = float4(0.5f, 0.5f, 0.5f, 1.0f);
+//	float4 finalTextureColor = input.FogFactor * fogColor + (1.0 - input.FogFactor) * texturesCompositionColor;
+//
+//	return saturate(
+//		FogEnabled ? finalTextureColor : texturesCompositionColor /* input.InputColor*/
+//		+ AmbientColor * AmbientIntensity + outColor);
+//}
+
+/*----------------------------------------------------------------*/
+/*---------------------- Techniques ------------------------------*/
+/*----------------------------------------------------------------*/
+
 technique BasicPhongLightning
 {
 	pass Pass1
@@ -156,3 +292,30 @@ technique BasicPhongLightning
 		PixelShader = compile ps_3_0 MainPixelShader();
 	}
 };
+
+technique Textured
+{
+	pass Pass1
+	{
+		VertexShader = compile vs_3_0 VertexShaderTexturedFunction();
+		PixelShader = compile ps_3_0 PixelShaderTexturedFunction();
+	}
+}
+
+//technique TexturedTranslated
+//{
+//	pass Pass1
+//	{
+//		VertexShader = compile vs_3_0 VertexShaderTexturedTranslatedFunction();
+//		PixelShader = compile ps_3_0 PixelShaderTexturedFunction();
+//	}
+//}
+//
+//technique MultiTextured
+//{
+//	pass Pass1
+//	{
+//		VertexShader = compile vs_3_0 VertexShaderTexturedFunction();
+//		PixelShader = compile ps_3_0 PixelShaderMultiTexturedFunction();
+//	}
+//}

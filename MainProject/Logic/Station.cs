@@ -14,6 +14,9 @@ namespace MainProject.Logic
         //private GameTime PrevUpdateGameTime { get; set; }
         //private GameTime PrevDrawGameTime { get; set; }
 
+        private Texture _metalTexture;
+        private Texture _sandTexture;
+
         #region Private fields and properties
 
         private readonly GraphicsDeviceManager _graphics;
@@ -21,6 +24,7 @@ namespace MainProject.Logic
         private Camera _camera;
         private readonly List<ModelObject> _objects = new List<ModelObject>();
         private readonly List<GeometricPrimitive> _primitives = new List<GeometricPrimitive>();
+        private readonly List<GeometricPrimitive> _texturedPrimitives = new List<GeometricPrimitive>();
         private List<Light> _lights;
         private RasterizerState _wireFrameState;
         private bool _isWireframe;
@@ -65,8 +69,21 @@ namespace MainProject.Logic
 
             _camera = new Camera(_graphics);
 
+            _wireFrameState = new RasterizerState
+            {
+                FillMode = FillMode.WireFrame,
+                CullMode = CullMode.None,
+            };
+        }
+
+        #endregion
+
+        #region Managing Content
+
+        private void AddObjectsToScene()
+        {
             _primitives.Add(new Cube(GraphicsDevice, "Station"));
-            _primitives.Add(new Cube(GraphicsDevice, "Platform"));
+            _texturedPrimitives.Add(new TexturedCube(GraphicsDevice, "Platform", _metalTexture));
             _primitives.Add(new Floor(GraphicsDevice, "Ground"));
 
             _lights = new List<Light>
@@ -119,28 +136,25 @@ namespace MainProject.Logic
                     SpotAngle = MathHelper.ToRadians(1f)
                 }
             };
-
-            _wireFrameState = new RasterizerState
-            {
-                FillMode = FillMode.WireFrame,
-                CullMode = CullMode.None,
-            };
         }
 
-        #endregion
+        private void LoadData()
+        {
+            _effect = Content.Load<Effect>("Shaders/shader");
+            _objects.Add(new ModelObject(Content, "Panther", "Model"));
+            _objects.Add(new ModelObject(_objects[0].GetModel(), "Panther", "Model2"));
+            _objects.Add(new ModelObject(Content, "Locomotive", "Model"));
 
-        #region Managing Content
+            _metalTexture = Content.Load<Texture>("Textures/metal");
+            _sandTexture = null;
+        }
 
         protected override void LoadContent()
         {
             Content.RootDirectory = "Content";
 
-            // Create a new SpriteBatch, which can be used to draw textures.
-            //_spriteBatch = new SpriteBatch(GraphicsDevice);
-            _effect = Content.Load<Effect>("Shaders/shader");
-            _objects.Add(new ModelObject(Content, "Panther", "Model"));
-            _objects.Add(new ModelObject(_objects[0].GetModel(), "Panther", "Model2"));
-            _objects.Add(new ModelObject(Content, "Locomotive", "Model"));
+            LoadData();
+            AddObjectsToScene();
         }
 
         protected override void UnloadContent()
@@ -206,6 +220,7 @@ namespace MainProject.Logic
         private void DrawScene(Camera camera)
         {
             foreach (var p in _primitives) p.Draw(camera, _effect);
+            foreach (var p in _texturedPrimitives) p.Draw(camera, _effect, true);
             foreach (var o in _objects) o.Draw(camera, _effect);
         }
 

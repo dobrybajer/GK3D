@@ -31,11 +31,15 @@ namespace MainProject.Config
         public const float StationCubeSizeSingle = 1000;
         public static readonly Color StationCubeColor = Color.DarkRed;
         public static readonly Matrix StationCubeScaleMatrix = Matrix.CreateScale(1f, 0.25f, 0.25f);
-        
+
         // Platform
+        public static readonly float PlatformCubeTextureResolutionSingle = 100;
         public const float PlatformCubeSizeSingle = 1000;
         public static readonly Color PlatformCubeColor = Color.DarkSeaGreen;
-        public static readonly Matrix PlatformCubeScaleMatrix = Matrix.CreateScale(1f, 0.025f, 0.13f);
+        public static readonly float PlatformCubeScaleXSingle = 1f;
+        public static readonly float PlatformCubeScaleYSingle = 0.025f;
+        public static readonly float PlatformCubeScaleZSingle = 0.125f;
+        public static readonly Matrix PlatformCubeScaleMatrix = Matrix.CreateScale(PlatformCubeScaleXSingle, PlatformCubeScaleYSingle, PlatformCubeScaleZSingle);
         public static readonly Matrix PlatformCubeTranslationMatrix = Matrix.CreateTranslation(0f, -62f, 59f);
         
         // Floor

@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework;
+﻿using MainProject.Logic;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
 namespace MainProject.Objects
@@ -7,7 +8,7 @@ namespace MainProject.Objects
     {
         #region Constructor
 
-        public Floor(GraphicsDevice graphicsDevice, string name)
+        public Floor(GraphicsDevice graphicsDevice, string name, Texture texture0 = null, Texture texture1 = null)
         {
             PreloadingConfig(name, "Floor");
 
@@ -30,6 +31,9 @@ namespace MainProject.Objects
             AddVertex((normal + side1 - side2) * Size / 2, Color, normal);
             
             InitializePrimitive(graphicsDevice);
+
+            Textures[0] = texture0;
+            Textures[1] = texture1;
         }
 
         #endregion

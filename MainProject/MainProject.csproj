@@ -42,6 +42,7 @@
     <Compile Include="Config\AppConfig.cs" />
     <Compile Include="Logic\Camera.cs" />
     <Compile Include="Logic\Station.cs" />
+    <Compile Include="Objects\TexturedCube.cs" />
     <Compile Include="Objects\Cube.cs" />
     <Compile Include="Objects\Floor.cs" />
     <Compile Include="Objects\GeometricPrimitive.cs" />
@@ -65,6 +66,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Content\Textures\grass.png" />
+    <Content Include="Content\Textures\metal.jpg" />
     <EmbeddedResource Include="Config\Icon.ico" />
     <Content Include="Content\Shaders\shader.fx" />
   </ItemGroup>

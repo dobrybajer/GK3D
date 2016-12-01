@@ -7,7 +7,7 @@ namespace MainProject.Objects
     {
         #region Constructor 
 
-        public Cube(GraphicsDevice graphicsDevice, string name)
+        public Cube(GraphicsDevice graphicsDevice, string name, Texture texture0 = null, Texture texture1 = null)
         {
             PreloadingConfig(name, "Cube");
 
@@ -41,6 +41,9 @@ namespace MainProject.Objects
             }
 
             InitializePrimitive(graphicsDevice);
+
+            Textures[0] = texture0;
+            Textures[1] = texture1;
         }
 
         #endregion
