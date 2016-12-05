@@ -103,6 +103,50 @@ namespace MainProject.Objects
             _textureIndices[id].Add(index);
         }
 
+        protected void MakeVertices(int id, IReadOnlyList<int> faces, Vector3 normal, Matrix rotation)
+        {
+            var dim1 = faces[0];
+            var dim2 = faces[1];
+            var dim3 = faces[2];
+
+            for (var i = 0; i < dim1; i++)
+            {
+                for (var j = 0; j < dim3; j++)
+                {
+                    var pos1 = i - dim1 / 2;
+                    var pos3 = j - dim3 / 2;
+
+                    var position = new Vector3(pos1, dim2, -pos3);
+                    var textureCoordinates = new Vector2(pos1 / TextureResolution, pos3 / TextureResolution);
+
+                    AddVertex(id, i + j * dim1, Vector3.Transform(position, rotation), normal, textureCoordinates);
+                }
+            }
+        }
+
+        protected void MakeIndicies(int id, int dim1, int dim2)
+        {
+            for (var i = 0; i < dim2 - 1; i++)
+            {
+                for (var j = 0; j < dim1 - 1; j++)
+                {
+                    var bottomLeft = j + i * dim1;
+                    var bottomRight = j + 1 + i * dim1;
+                    var topLeft = j + (i + 1) * dim1;
+                    var topRight = j + 1 + (i + 1) * dim1;
+
+                    AddIndex(id, topLeft);
+                    AddIndex(id, bottomRight);
+                    AddIndex(id, bottomLeft);
+
+                    AddIndex(id, topLeft);
+                    AddIndex(id, topRight);
+                    AddIndex(id, bottomRight);
+                }
+            }
+        }
+
+
         #endregion
 
         #region Common methods
@@ -150,7 +194,13 @@ namespace MainProject.Objects
 
         #region Draw
 
-        public void Draw(Camera camera, Effect effect)
+        public void Draw(Camera c, Effect e)
+        {
+            if(Textures[0] != null) DrawWithTexture(c, e);
+            else DrawWithoutTexture(c, e);
+        }
+
+        private void DrawWithoutTexture(Camera camera, Effect effect)
         {
             var graphicsDevice = effect.GraphicsDevice;
 
@@ -165,6 +215,10 @@ namespace MainProject.Objects
                                                 _translationMatrix*
                                                 camera.WorldMatrix);
 
+            effect.Parameters["FogEnabled"].SetValue(AppConfig.FogEnabled ? 1f : 0f);
+            effect.Parameters["FogStart"].SetValue(AppConfig.FogStart);
+            effect.Parameters["FogEnd"].SetValue(AppConfig.FogEnd);
+
             foreach (var effectPass in effect.CurrentTechnique.Passes)
             {
                 effectPass.Apply();
@@ -176,13 +230,12 @@ namespace MainProject.Objects
             ResetCurrentTechniqueToDefault(effect);
         }
 
-        public virtual void Draw(Camera camera, Effect effect, bool textured)
+        private void DrawWithTexture(Camera camera, Effect effect)
         {
             var graphicsDevice = effect.GraphicsDevice;
 
             var texture1 = Textures.Length > 1 && Textures[1] != null ? Textures[1] : null;
             effect.CurrentTechnique = texture1 != null ? effect.Techniques["MultiTextured"] : effect.Techniques["Textured"];
-
 
             graphicsDevice.SetVertexBuffer(_vertexBuffer);
             graphicsDevice.Indices = _indexBuffer;
@@ -191,7 +244,6 @@ namespace MainProject.Objects
             effect.Parameters["View"].SetValue(camera.ViewMatrix);
             effect.Parameters["Projection"].SetValue(camera.ProjectionMatrix);
             effect.Parameters["World"].SetValue(_rotationMatrix *
-                                                
                                                 _translationMatrix *
                                                 camera.WorldMatrix);
 
@@ -200,6 +252,10 @@ namespace MainProject.Objects
 
             if (texture1 != null)
                 effect.Parameters["Texture1"].SetValue(Textures[1]);
+
+            effect.Parameters["FogEnabled"].SetValue(AppConfig.FogEnabled ? 1f : 0f);
+            effect.Parameters["FogStart"].SetValue(AppConfig.FogStart);
+            effect.Parameters["FogEnd"].SetValue(AppConfig.FogEnd);
 
             foreach (var effectPass in effect.CurrentTechnique.Passes)
             {

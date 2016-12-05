@@ -23,6 +23,10 @@ float	SpecularIntensities[NUM_LIGHTS];
 float	SpecularPower[NUM_LIGHTS];
 float	SpotAngle[NUM_LIGHTS];
 
+float	FogEnabled;
+float	FogStart;
+float	FogEnd;
+
 /* Texture */
 float4x4 TextureMatrix;
 
@@ -52,11 +56,11 @@ struct VertexShaderOutput
 	float4 TextureCoordinate : TEXCOORD1;
 	float3 ViewDirection : TEXCOORD2;
 	float3 WorldPosition : TEXCOORD3;
+	float FogFactor : TEXCOORD4;
 };
 
-
 /*----------------------------------------------------------------*/
-/*-------------------- Functions - Lights -----------------------*/
+/*--------------------- Functions - Lights -----------------------*/
 /*----------------------------------------------------------------*/
 float DoAttenuation(float d)
 {
@@ -143,17 +147,17 @@ float4 CalculateLights(VertexShaderOutput input)
 	return outColor;
 }
 
+/*----------------------------------------------------------------*/
+/*---------------------- Functions - Fog -------------------------*/
+/*----------------------------------------------------------------*/
+float ComputeFogFactor(float d)
+{
+	//return clamp((d - FogStart) / (FogEnd - FogStart), 0, 1);
+	return saturate((d - FogStart) / (FogEnd - FogStart));
+}
 
 /*----------------------------------------------------------------*/
-/*-------------------- Functions - Fog -----------------------*/
-/*----------------------------------------------------------------*/
-//float ComputeFogFactor(float d)
-//{
-//	return clamp((d - FogStart) / (FogEnd - FogStart), 0, 1);
-//}
-
-/*----------------------------------------------------------------*/
-/*-------------------- Stage 1 - Shader functions ---------------------*/
+/*------------------ Stage 1 - Shader functions ------------------*/
 /*----------------------------------------------------------------*/
 
 VertexShaderOutput MainVertexShader(VertexShaderInput input)
@@ -166,7 +170,7 @@ VertexShaderOutput MainVertexShader(VertexShaderInput input)
 	float4x4 viewProjection = mul(View, Projection);
 
 	output.Position = mul(worldPosition, viewProjection);
-	output.Normal = normalize(mul(input.Normal, World)).xyz;
+	output.Normal = normalize(mul(input.Normal, (float3x3)World)).xyz;
 	output.ViewDirection = (float3)worldPosition - CameraPosition;
 	output.WorldPosition = (float3)worldPosition;
 
@@ -179,7 +183,7 @@ float4 MainPixelShader(VertexShaderOutput input) : Color0
 }
 
 /*----------------------------------------------------------------*/
-/*-------------------- VertexShader Textured ---------------------*/
+/*-------------- Stage 2 Textured  Shader functions---------------*/
 /*----------------------------------------------------------------*/
 
 VertexShaderOutput VertexShaderTexturedFunction(VertexShaderInput input)
@@ -193,47 +197,18 @@ VertexShaderOutput VertexShaderTexturedFunction(VertexShaderInput input)
 
 	output.Position = mul(worldPosition, viewProjection);
 	output.Normal = normalize(mul(input.Normal, (float3x3)World)).xyz;
-	output.WorldPosition = worldPosition.xyz;
+	output.ViewDirection = (float3)worldPosition - CameraPosition;
+	output.WorldPosition = (float3)worldPosition;
 
 	input.TextureCoordinate.w = 1;
 	output.TextureCoordinate = mul(input.TextureCoordinate, TextureMatrix);
-
-	//output.FogFactor = ComputeFogFactor(length(CameraPosition - (float3)worldPosition));
+	output.FogFactor = ComputeFogFactor(length(output.ViewDirection));
 
 	return output;
 }
 
-//VertexShaderOutput VertexShaderTexturedTranslatedFunction(VertexShaderInput input)
-//{
-//	VertexShaderOutput output = (VertexShaderOutput)0;
-//
-//	input.Position.w = 1;
-//
-//	float4 worldPosition = mul(input.Position, World);
-//	float4 viewPosition = mul(worldPosition, View);
-//	output.Position = mul(viewPosition, Projection);
-//
-//	float3 normal = normalize(mul(input.Normal, (float3x3)World)).xyz;
-//
-//	output.Normal = normal;
-//	output.WorldPosition = worldPosition.xyz;
-//	//output.InputColor = input.InputColor;
-//
-//	input.TextureCoordinate.w = 1;
-//	output.TextureCoordinate = mul(worldPosition, TextureMatrix);
-//
-//	output.FogFactor = ComputeFogFactor(length(CameraPosition - (float3)worldPosition));
-//
-//	return output;
-//}
-
-/*----------------------------------------------------------------*/
-/*-------------------- PixelShader Textured ----------------------*/
-/*----------------------------------------------------------------*/
 float4 PixelShaderTexturedFunction(VertexShaderOutput input) : Color0
 {
-	float4 outColor = CalculateLights(input);
-
 	float4 textureColor = tex2Dbias(TextureSampler, input.TextureCoordinate);
 	float alpha = textureColor.a;
 
@@ -242,15 +217,13 @@ float4 PixelShaderTexturedFunction(VertexShaderOutput input) : Color0
 		return textureColor;
 	}
 
-	//float4 fogColor = float4(0.5f, 0.5f, 0.5f, 1.0f);
-	//float4 finalTextureColor = input.FogFactor * fogColor + (1.0 - input.FogFactor) * textureColor;
-
-	float4 finalTextureColor = textureColor;
-
-	return saturate(textureColor + AmbientColor * AmbientIntensity + outColor);
-		//saturate(
-		//FogEnabled ? finalTextureColor : textureColor /* input.InputColor*/
-		//+ AmbientColor * AmbientIntensity + outColor);
+	float4 outColor = CalculateLights(input);
+	float4 fogColor = float4(0.2f, 0.2f, 0.2f, 1.0f);
+	float4 finalTextureColor = textureColor + outColor + AmbientColor * AmbientIntensity;
+	
+	return saturate(FogEnabled ? 
+		input.FogFactor * fogColor + (1.0 - input.FogFactor) * finalTextureColor :
+		finalTextureColor);
 }
 
 
@@ -284,10 +257,6 @@ technique BasicPhongLightning
 {
 	pass Pass1
 	{
-		//AlphaBlendEnable = TRUE;
-		//DestBlend = INVSRCALPHA;
-		//SrcBlend = SRCALPHA;
-
 		VertexShader = compile vs_3_0 MainVertexShader();
 		PixelShader = compile ps_3_0 MainPixelShader();
 	}

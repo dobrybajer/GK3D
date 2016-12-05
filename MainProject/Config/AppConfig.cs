@@ -7,6 +7,14 @@ namespace MainProject.Config
 {
     internal class AppConfig
     {
+        #region Live configuration
+
+        public static bool FogEnabled = false;
+        public static float FogStart = 1f;
+        public static float FogEnd = 500;
+
+        #endregion
+
         #region Camera
 
         public const float CameraSpeed = 1f;
@@ -41,11 +49,15 @@ namespace MainProject.Config
         public static readonly float PlatformCubeScaleZSingle = 0.125f;
         public static readonly Matrix PlatformCubeScaleMatrix = Matrix.CreateScale(PlatformCubeScaleXSingle, PlatformCubeScaleYSingle, PlatformCubeScaleZSingle);
         public static readonly Matrix PlatformCubeTranslationMatrix = Matrix.CreateTranslation(0f, -62f, 59f);
-        
+
         // Floor
+        public static readonly float GroundFloorTextureResolutionSingle = 100;
         public const float GroundFloorSizeSingle = 1000;
         public static readonly Color GroundFloorColor = Color.DimGray;
-        public static readonly Matrix GroundFloorScaleMatrix = Matrix.CreateScale(1f, 0.25f, 0.25f);
+        public static readonly float GroundFloorScaleXSingle = 1f;
+        public static readonly float GroundFloorScaleYSingle = 0.25f;
+        public static readonly float GroundFloorScaleZSingle = 0.25f;
+        public static readonly Matrix GroundFloorScaleMatrix = Matrix.CreateScale(GroundFloorScaleXSingle, GroundFloorScaleYSingle, GroundFloorScaleZSingle);
         public static readonly Matrix GroundFloorTranslationMatrix = Matrix.CreateTranslation(0f, -StationCubeSizeSingle / 5, 0);
         
         // Panther

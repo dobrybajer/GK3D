@@ -42,6 +42,7 @@
     <Compile Include="Config\AppConfig.cs" />
     <Compile Include="Logic\Camera.cs" />
     <Compile Include="Logic\Station.cs" />
+    <Compile Include="Objects\TexturedFloor.cs" />
     <Compile Include="Objects\TexturedCube.cs" />
     <Compile Include="Objects\Cube.cs" />
     <Compile Include="Objects\Floor.cs" />
@@ -66,8 +67,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Content\Textures\daradevil.png" />
     <Content Include="Content\Textures\grass.png" />
+    <Content Include="Content\Textures\ground1.jpg" />
+    <Content Include="Content\Textures\matrix1.jpg" />
     <Content Include="Content\Textures\metal.jpg" />
+    <Content Include="Content\Textures\rock1.jpg" />
     <EmbeddedResource Include="Config\Icon.ico" />
     <Content Include="Content\Shaders\shader.fx" />
   </ItemGroup>

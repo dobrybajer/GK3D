@@ -8,6 +8,12 @@ namespace MainProject.Objects
 {
     internal class ModelObject
     {
+        #region Consts
+
+        private const string DefaultTechnique = "BasicPhongLightning";
+
+        #endregion
+
         #region Private fields
 
         private Matrix _scaleMatrix;
@@ -15,6 +21,7 @@ namespace MainProject.Objects
         private Matrix _rotationMatrix;
         private readonly Model _model;
         private Color _color;
+        private Texture _texture;
 
         #endregion
 
@@ -29,15 +36,17 @@ namespace MainProject.Objects
 
         #region Constructors
 
-        public ModelObject(Model model, string name, string info)
+        public ModelObject(Model model, string name, string info, Texture texture = null)
         {
             _model = model;
+            _texture = texture;
             PreloadingConfig(name, info);
         }
 
-        public ModelObject(ContentManager content, string name, string info)
+        public ModelObject(ContentManager content, string name, string info, Texture texture = null)
         {
             _model = content.Load<Model>($"Models/{name.ToLower()}");
+            _texture = texture;
             PreloadingConfig(name, info);
         }
 
@@ -76,6 +85,12 @@ namespace MainProject.Objects
 
         public void Draw(Camera camera, Effect e)
         {
+            if (_texture == null) DrawWithoutTexture(camera, e);
+            else DrawWithTexture(camera, e);
+        }
+
+        private void DrawWithoutTexture(Camera camera, Effect e)
+        {
             foreach (var mesh in _model.Meshes)
             {
                 foreach (var meshPart in mesh.MeshParts)
@@ -96,12 +111,63 @@ namespace MainProject.Objects
                                                             _scaleMatrix*
                                                             _translationMatrix*
                                                             camera.WorldMatrix);
+
+                        effect.Parameters["FogEnabled"].SetValue(AppConfig.FogEnabled ? 1f : 0f);
+                        effect.Parameters["FogStart"].SetValue(AppConfig.FogStart);
+                        effect.Parameters["FogEnd"].SetValue(AppConfig.FogEnd);
                     }
                 }
                 mesh.Draw();
             }
+
+            ResetCurrentTechniqueToDefault(e);
+        }
+
+        private void DrawWithTexture(Camera camera, Effect e)
+        {
+            foreach (var mesh in _model.Meshes)
+            {
+                foreach (var meshPart in mesh.MeshParts)
+                {
+                    meshPart.Effect = e;
+                }
+
+                foreach (var effect in mesh.Effects)
+                {
+                    effect.CurrentTechnique = effect.Techniques["Textured"];
+
+                    foreach (var pass in effect.CurrentTechnique.Passes)
+                    {
+                        pass.Apply();
+
+                        effect.Parameters["CameraPosition"].SetValue(camera.CameraPosition);
+                        effect.Parameters["View"].SetValue(camera.ViewMatrix);
+                        effect.Parameters["Projection"].SetValue(camera.ProjectionMatrix);
+                        effect.Parameters["World"].SetValue(_rotationMatrix *
+                                                            _scaleMatrix *
+                                                            _translationMatrix *
+                                                            camera.WorldMatrix);
+
+                        effect.Parameters["Texture"].SetValue(_texture);
+                        effect.Parameters["TextureMatrix"].SetValue(Matrix.Identity);
+
+                        effect.Parameters["FogEnabled"].SetValue(AppConfig.FogEnabled ? 1f : 0f);
+                        effect.Parameters["FogStart"].SetValue(AppConfig.FogStart);
+                        effect.Parameters["FogEnd"].SetValue(AppConfig.FogEnd);
+                    }
+                }
+                mesh.Draw();
+            }
+
+            ResetCurrentTechniqueToDefault(e);
+        }
+
+        private static void ResetCurrentTechniqueToDefault(Effect effect)
+        {
+            effect.CurrentTechnique = effect.Techniques[DefaultTechnique];
         }
 
         #endregion
+
     }
 }
