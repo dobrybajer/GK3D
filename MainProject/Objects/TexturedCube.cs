@@ -8,6 +8,8 @@ namespace MainProject.Objects
 {
     internal class TexturedCube : GeometricPrimitive
     {
+        public bool ChangesdBasicTexture;
+
         #region Constructor 
 
         public TexturedCube(GraphicsDevice graphicsDevice, string name, Texture texture0 = null, Texture texture1 = null)

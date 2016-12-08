@@ -152,8 +152,8 @@ float4 CalculateLights(VertexShaderOutput input)
 /*----------------------------------------------------------------*/
 float ComputeFogFactor(float d)
 {
-	//return clamp((d - FogStart) / (FogEnd - FogStart), 0, 1);
-	return saturate((d - FogStart) / (FogEnd - FogStart));
+	return clamp((d - FogStart) / (FogEnd - FogStart), 0, 1);
+	//return saturate((d - FogStart) / (FogEnd - FogStart));
 }
 
 /*----------------------------------------------------------------*/
@@ -230,24 +230,24 @@ float4 PixelShaderTexturedFunction(VertexShaderOutput input) : Color0
 /*----------------------------------------------------------------*/
 /*----------------- PixelShader MultiTextured --------------------*/
 /*----------------------------------------------------------------*/
-//float4 PixelShaderMultiTexturedFunction(VertexShaderOutput input) : Color0
-//{
-//	float4 outColor = CalculateLights(input);
-//
-//	float4 secondTextureColor = tex2Dbias(Texture1Sampler, input.TextureCoordinate);
-//	float alpha = secondTextureColor.a;
-//	secondTextureColor.a = 1;
-//	float4 textureColor = tex2Dbias(TextureSampler, input.TextureCoordinate);
-//	textureColor.a = 1;
-//
-//	float4 texturesCompositionColor = alpha * secondTextureColor + (1 - alpha) * textureColor;
-//	float4 fogColor = float4(0.5f, 0.5f, 0.5f, 1.0f);
-//	float4 finalTextureColor = input.FogFactor * fogColor + (1.0 - input.FogFactor) * texturesCompositionColor;
-//
-//	return saturate(
-//		FogEnabled ? finalTextureColor : texturesCompositionColor /* input.InputColor*/
-//		+ AmbientColor * AmbientIntensity + outColor);
-//}
+
+float4 PixelShaderMultiTexturedFunction(VertexShaderOutput input) : Color0
+{
+	float4 outColor = CalculateLights(input);
+
+	float4 secondTextureColor = tex2Dbias(Texture1Sampler, input.TextureCoordinate);
+	float alpha = secondTextureColor.a;
+	float4 textureColor = tex2Dbias(TextureSampler, input.TextureCoordinate);
+
+	float4 texturesCompositionColor = alpha * secondTextureColor + (1 - alpha) * textureColor;
+	float4 fogColor = float4(0.2f, 0.2f, 0.2f, 1.0f);
+	float4 finalTextureColor = texturesCompositionColor + outColor + AmbientColor * AmbientIntensity;
+
+
+	return saturate(FogEnabled ? 
+		input.FogFactor * fogColor + (1.0 - input.FogFactor) * finalTextureColor :
+		finalTextureColor);
+}
 
 /*----------------------------------------------------------------*/
 /*---------------------- Techniques ------------------------------*/
@@ -280,11 +280,11 @@ technique Textured
 //	}
 //}
 //
-//technique MultiTextured
-//{
-//	pass Pass1
-//	{
-//		VertexShader = compile vs_3_0 VertexShaderTexturedFunction();
-//		PixelShader = compile ps_3_0 PixelShaderMultiTexturedFunction();
-//	}
-//}
+technique MultiTextured
+{
+	pass Pass1
+	{
+		VertexShader = compile vs_3_0 VertexShaderTexturedFunction();
+		PixelShader = compile ps_3_0 PixelShaderMultiTexturedFunction();
+	}
+}

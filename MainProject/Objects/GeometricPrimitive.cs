@@ -119,7 +119,7 @@ namespace MainProject.Objects
                     var position = new Vector3(pos1, dim2, -pos3);
                     var textureCoordinates = new Vector2(pos1 / TextureResolution, pos3 / TextureResolution);
 
-                    AddVertex(id, i + j * dim1, Vector3.Transform(position, rotation), normal, textureCoordinates);
+                    AddVertex(id, i + j * dim1, Vector3.Transform(position, rotation), normal, Vector2.Transform(textureCoordinates, Matrix.CreateTranslation(1f,-0.5f,1f)));
                 }
             }
         }
@@ -146,6 +146,10 @@ namespace MainProject.Objects
             }
         }
 
+        public void ChangeBasicTexture(Texture texture)
+        {
+            Textures[0] = texture;
+        }
 
         #endregion
 

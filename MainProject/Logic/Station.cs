@@ -31,7 +31,8 @@ namespace MainProject.Logic
         private FilterLevel[] _filters;
         private float _mipMapLevelOfDetailBias = -10;
         private bool _multiSampling;
-
+        private readonly Dictionary<string, Texture> _textures = new Dictionary<string, Texture>();
+        
         #endregion
 
         #region Constructors
@@ -91,8 +92,8 @@ namespace MainProject.Logic
         private void AddObjectsToScene()
         {
             _primitives.Add(new Cube(GraphicsDevice, "Station"));
-            _texturedPrimitives.Add(new TexturedCube(GraphicsDevice, "Platform", Content.Load<Texture>("Textures/rock1")));
-            _primitives.Add(new TexturedFloor(GraphicsDevice, "Ground", Content.Load<Texture>("Textures/ground1")));
+            _texturedPrimitives.Add(new TexturedCube(GraphicsDevice, "Platform", _textures["rock1"], _textures["peron"]));
+            _primitives.Add(new TexturedFloor(GraphicsDevice, "Ground", _textures["ground1"]));
 
             _lights = new List<Light>
             {
@@ -148,10 +149,18 @@ namespace MainProject.Logic
 
         private void LoadData()
         {
+            _textures.Add("matrix1", Content.Load<Texture>("Textures /matrix1"));
+            _textures.Add("daradevil", Content.Load<Texture>("Textures/daradevil"));
+            _textures.Add("metal", Content.Load<Texture>("Textures/metal"));
+            _textures.Add("rock1", Content.Load<Texture>("Textures/rock1"));
+            _textures.Add("peron", Content.Load<Texture>("Textures/peron"));
+            _textures.Add("ground1", Content.Load<Texture>("Textures/ground1"));
+            _textures.Add("grass", Content.Load<Texture>("Textures/grass"));
+
             _effect = Content.Load<Effect>("Shaders/shader");
-            _objects.Add(new ModelObject(Content, "Panther", "Model", Content.Load<Texture>("Textures/matrix1")));
-            _objects.Add(new ModelObject(_objects[0].GetModel(), "Panther", "Model2", Content.Load<Texture>("Textures/daradevil")));
-            _objects.Add(new ModelObject(Content, "Locomotive", "Model", Content.Load<Texture>("Textures/metal")));
+            _objects.Add(new ModelObject(Content, "Panther", "Model", _textures["matrix1"]));
+            _objects.Add(new ModelObject(_objects[0].GetModel(), "Panther", "Model2", _textures["daradevil"]));
+            _objects.Add(new ModelObject(Content, "Locomotive", "Model", _textures["metal"]));
         }
 
         protected override void LoadContent()
@@ -224,6 +233,15 @@ namespace MainProject.Logic
 
             if (pressedKeys.Contains(Keys.M) && !prevPressedKeys.Contains(Keys.M)) _multiSampling = !_multiSampling;
 
+            if (pressedKeys.Contains(Keys.T) && !prevPressedKeys.Contains(Keys.T))
+            {
+                var obj = _texturedPrimitives[0] as TexturedCube;
+
+                if (obj == null) return;
+
+                _texturedPrimitives[0].ChangeBasicTexture(_textures[obj.ChangesdBasicTexture ? "rock1" : "metal"]);
+                obj.ChangesdBasicTexture = !obj.ChangesdBasicTexture;
+            }
             /* ground textures change */
             //if (pressedKeys.Contains(Keys.T) && !prevPressedKeys.Contains(Keys.T))
             //{
@@ -262,8 +280,17 @@ namespace MainProject.Logic
         private void SetUpGraphicDeviceParameters()
         {
             _graphics.GraphicsDevice.Clear(Color.White);
-            
+
             //_graphics.GraphicsDevice.BlendState = BlendState.AlphaBlend;
+            //var bs = new BlendState
+            //{
+            //    AlphaSourceBlend = Blend.SourceAlphaSaturation,
+            //    AlphaDestinationBlend = Blend.DestinationColor,
+            //    ColorSourceBlend = Blend.DestinationAlpha,
+            //    ColorDestinationBlend = Blend.DestinationAlpha,
+            //    AlphaBlendFunction = BlendFunction.Subtract
+            //};
+            //_graphics.GraphicsDevice.BlendState = bs;
 
             _graphics.PreferMultiSampling = _multiSampling;
             _graphics.GraphicsDevice.PresentationParameters.MultiSampleCount = _multiSampling ? 8 : 0;
@@ -283,9 +310,22 @@ namespace MainProject.Logic
                 AddressW = TextureAddressMode.Wrap,
                 AddressV = TextureAddressMode.Wrap
             };
+            
+            var ss1 = new SamplerState
+            {
+                Filter = TextureFilterFromMinMagMip(_filters),
+                //MaxMipLevel = 255,
+                MaxAnisotropy = 16,
+                MipMapLevelOfDetailBias = _mipMapLevelOfDetailBias,
+                AddressU = TextureAddressMode.Wrap,
+                AddressW = TextureAddressMode.Border,
+                AddressV = TextureAddressMode.Border,
+                BorderColor = new Color(Color.Black, 0)
+
+            };
 
             _graphics.GraphicsDevice.SamplerStates[0] = ss;
-            _graphics.GraphicsDevice.SamplerStates[1] = ss;
+            _graphics.GraphicsDevice.SamplerStates[1] = ss1;
 
             _graphics.ApplyChanges();
         }
