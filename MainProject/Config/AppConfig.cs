@@ -29,7 +29,7 @@ namespace MainProject.Config
 
         public const float NearPlaneDistance = 1;
         public const float FarPlaneDistance = 1200;
-        public const float FieldOfView = 60f; // degrees
+        public const float FieldOfView = 45f; // degrees
 
         #endregion
 
@@ -59,7 +59,18 @@ namespace MainProject.Config
         public static readonly float GroundFloorScaleZSingle = 0.25f;
         public static readonly Matrix GroundFloorScaleMatrix = Matrix.CreateScale(GroundFloorScaleXSingle, GroundFloorScaleYSingle, GroundFloorScaleZSingle);
         public static readonly Matrix GroundFloorTranslationMatrix = Matrix.CreateTranslation(0f, -StationCubeSizeSingle / 5, 0);
-        
+
+        // Screen
+        public static readonly float ScreenFloorTextureResolutionSingle = 50;
+        public const float ScreenFloorSizeSingle = 100;
+        public static readonly float ScreenFloorScaleXSingle = 1f;
+        public static readonly float ScreenFloorScaleYSingle = 1f;
+        public static readonly float ScreenFloorScaleZSingle = 1f;
+        public static readonly bool ScreenFloorTextureTranslationBoolean = false;
+        public static readonly Matrix ScreenFloorScaleMatrix = Matrix.CreateScale(ScreenFloorScaleXSingle, ScreenFloorScaleYSingle, ScreenFloorScaleZSingle);
+        public static readonly Matrix ScreenFloorTranslationMatrix = Matrix.CreateTranslation(-540f, 0f, 70f);
+        public static readonly Matrix ScreenFloorRotationMatrix = Matrix.CreateFromYawPitchRoll(MathHelper.ToRadians(90), MathHelper.ToRadians(-90), MathHelper.ToRadians(180f));
+
         // Panther
         public static readonly Matrix PantherModelScaleMatrix = Matrix.CreateScale(1f, 1f, 1f);
         public static readonly Matrix PantherModelTranslationMatrix = Matrix.CreateTranslation(-140f, -49f, 3f);
@@ -108,6 +119,11 @@ namespace MainProject.Config
             if (typeof(T) == typeof(float))
             {
                 return (T)Convert.ChangeType(1, typeof(T));
+            }
+
+            if (typeof(T) == typeof(bool))
+            {
+                return (T)Convert.ChangeType(true, typeof(T));
             }
 
             return default(T);

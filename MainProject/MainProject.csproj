@@ -75,6 +75,7 @@
     <Content Include="Content\Textures\peron.jpg" />
     <Content Include="Content\Textures\peronsmall.jpg" />
     <Content Include="Content\Textures\rock1.jpg" />
+    <Content Include="Content\Textures\rock2.jpg" />
     <EmbeddedResource Include="Config\Icon.ico" />
     <Content Include="Content\Shaders\shader.fx" />
   </ItemGroup>

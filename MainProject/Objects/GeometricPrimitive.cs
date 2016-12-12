@@ -30,6 +30,8 @@ namespace MainProject.Objects
         private VertexBuffer _vertexBuffer;
         private IndexBuffer _indexBuffer;
 
+        private bool _translation = true;
+
         #endregion
 
         #region Protected fields
@@ -58,6 +60,8 @@ namespace MainProject.Objects
             ScaleX = AppConfig.GetValueFromConfig<float>(name, info, "ScaleX");
             ScaleY = AppConfig.GetValueFromConfig<float>(name, info, "ScaleY");
             ScaleZ = AppConfig.GetValueFromConfig<float>(name, info, "ScaleZ");
+
+            _translation = AppConfig.GetValueFromConfig<bool>(name, info, "TextureTranslation");
         }
 
         #endregion
@@ -119,7 +123,7 @@ namespace MainProject.Objects
                     var position = new Vector3(pos1, dim2, -pos3);
                     var textureCoordinates = new Vector2(pos1 / TextureResolution, pos3 / TextureResolution);
 
-                    AddVertex(id, i + j * dim1, Vector3.Transform(position, rotation), normal, Vector2.Transform(textureCoordinates, Matrix.CreateTranslation(1f,-0.5f,1f)));
+                    AddVertex(id, i + j * dim1, Vector3.Transform(position, rotation), normal, _translation ? Vector2.Transform(textureCoordinates, Matrix.CreateTranslation(1f,-0.5f,1f)) : textureCoordinates);
                 }
             }
         }

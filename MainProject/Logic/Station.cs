@@ -11,20 +11,20 @@ namespace MainProject.Logic
 {
     public class Station : Game
     {
-        //private SpriteBatch _spriteBatch;
-        //private GameTime PrevUpdateGameTime { get; set; }
-        //private GameTime PrevDrawGameTime { get; set; }
-
         #region Private fields and properties
 
         private readonly GraphicsDeviceManager _graphics;
         private Effect _effect; // own shader
         private Camera _camera;
+        private Camera _screenCamera;
         private readonly List<ModelObject> _objects = new List<ModelObject>();
         private readonly List<GeometricPrimitive> _primitives = new List<GeometricPrimitive>();
         private readonly List<GeometricPrimitive> _texturedPrimitives = new List<GeometricPrimitive>();
+        private TexturedFloor _screen;
         private List<Light> _lights;
         private RasterizerState _wireFrameState;
+        private RasterizerState _normalMultisamplingState;
+        private RasterizerState _stationMultisamplingState;
         private bool _isWireframe;
         private KeyboardState _keyboardState;
         private KeyboardState _prevKeyboardState;
@@ -32,7 +32,9 @@ namespace MainProject.Logic
         private float _mipMapLevelOfDetailBias = -10;
         private bool _multiSampling;
         private readonly Dictionary<string, Texture> _textures = new Dictionary<string, Texture>();
-        
+        private float _clippingPlaneZ;
+        private RenderTarget2D _renderTarget;
+
         #endregion
 
         #region Constructors
@@ -40,11 +42,14 @@ namespace MainProject.Logic
         public Station()
         {
             _graphics = new GraphicsDeviceManager(this);
-            
+
             Window.Title = "Subway Station";
             IsMouseVisible = true;
             Window.AllowUserResizing = true;
             Window.ClientSizeChanged += Window_ClientSizeChanged;
+
+            _graphics.PreferredBackBufferHeight = 600;
+            _graphics.PreferredBackBufferWidth = 800;
         }
 
         #endregion
@@ -55,6 +60,7 @@ namespace MainProject.Logic
         {
             _graphics.PreferredBackBufferWidth = _graphics.GraphicsDevice.Viewport.Width;
             _graphics.PreferredBackBufferHeight = _graphics.GraphicsDevice.Viewport.Height;
+
             _graphics.ApplyChanges();
         }
 
@@ -65,16 +71,26 @@ namespace MainProject.Logic
         protected override void Initialize()
         {
             base.Initialize();
-            
-            //PrevDrawGameTime = new GameTime();
-            //PrevUpdateGameTime = new GameTime();
-
+         
             _camera = new Camera(_graphics);
+            _screenCamera = new Camera(_graphics);
+
+            _normalMultisamplingState = new RasterizerState
+            {
+                MultiSampleAntiAlias = _multiSampling,
+                CullMode = CullMode.CullCounterClockwiseFace
+            };
+
+            _stationMultisamplingState = new RasterizerState
+            {
+                MultiSampleAntiAlias = _multiSampling,
+                CullMode = CullMode.None,
+            };
 
             _wireFrameState = new RasterizerState
             {
                 FillMode = FillMode.WireFrame,
-                CullMode = CullMode.None,
+                CullMode = CullMode.None
             };
 
             _filters = new[]
@@ -93,7 +109,8 @@ namespace MainProject.Logic
         {
             _primitives.Add(new Cube(GraphicsDevice, "Station"));
             _texturedPrimitives.Add(new TexturedCube(GraphicsDevice, "Platform", _textures["rock1"], _textures["peron"]));
-            _primitives.Add(new TexturedFloor(GraphicsDevice, "Ground", _textures["ground1"]));
+            _texturedPrimitives.Add(new TexturedFloor(GraphicsDevice, "Ground", _textures["ground1"]));
+            _screen = new TexturedFloor(GraphicsDevice, "Screen");
 
             _lights = new List<Light>
             {
@@ -153,6 +170,7 @@ namespace MainProject.Logic
             _textures.Add("daradevil", Content.Load<Texture>("Textures/daradevil"));
             _textures.Add("metal", Content.Load<Texture>("Textures/metal"));
             _textures.Add("rock1", Content.Load<Texture>("Textures/rock1"));
+            _textures.Add("rock2", Content.Load<Texture>("Textures/rock2"));
             _textures.Add("peron", Content.Load<Texture>("Textures/peron"));
             _textures.Add("ground1", Content.Load<Texture>("Textures/ground1"));
             _textures.Add("grass", Content.Load<Texture>("Textures/grass"));
@@ -169,11 +187,14 @@ namespace MainProject.Logic
 
             LoadData();
             AddObjectsToScene();
+
+            var pp = _graphics.GraphicsDevice.PresentationParameters;
+            _renderTarget = new RenderTarget2D(_graphics.GraphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight, true, _graphics.GraphicsDevice.DisplayMode.Format, DepthFormat.Depth24);
         }
 
         protected override void UnloadContent()
         {
-
+            Content.Unload();
         }
 
         #endregion
@@ -195,7 +216,6 @@ namespace MainProject.Logic
             UpdateFogParameters(pressedKeys, prevPressedKeys);
 
             _prevKeyboardState = _keyboardState;
-            //PrevUpdateGameTime = gameTime;
 
             base.Update(gameTime);
         }
@@ -207,6 +227,8 @@ namespace MainProject.Logic
             if (pressedKeys.Contains(Keys.D2) && !prevPressedKeys.Contains(Keys.D2)) _lights[1].Enabled = !_lights[1].Enabled;
             if (pressedKeys.Contains(Keys.D3) && !prevPressedKeys.Contains(Keys.D3)) _lights[2].Enabled = !_lights[2].Enabled;
             if (pressedKeys.Contains(Keys.D4) && !prevPressedKeys.Contains(Keys.D4)) _lights[3].Enabled = !_lights[3].Enabled;
+            if (pressedKeys.Contains(Keys.D5)) _clippingPlaneZ += 1f;
+            if (pressedKeys.Contains(Keys.D6)) _clippingPlaneZ -= 1f;
         }
 
         private static void UpdateFogParameters(Keys[] pressedKeys, IEnumerable<Keys> prevPressedKeys)
@@ -220,8 +242,8 @@ namespace MainProject.Logic
 
         private void UpdateTexturesParameters(Keys[] pressedKeys, Keys[] prevPressedKeys)
         {
-            if (pressedKeys.Contains(Keys.OemMinus)) _mipMapLevelOfDetailBias -= 0.1f;
-            if (pressedKeys.Contains(Keys.OemPlus)) _mipMapLevelOfDetailBias += 0.1f;
+            if (pressedKeys.Contains(Keys.U)) _mipMapLevelOfDetailBias -= 0.1f;
+            if (pressedKeys.Contains(Keys.I)) _mipMapLevelOfDetailBias += 0.1f;
             
             if (pressedKeys.Contains(Keys.Multiply) && !prevPressedKeys.Contains(Keys.Multiply)) _filters[0] = (FilterLevel)(((int)_filters[0] + 1) % 3);
             if (pressedKeys.Contains(Keys.OemOpenBrackets) && !prevPressedKeys.Contains(Keys.OemOpenBrackets)) _filters[1] = (FilterLevel)(((int)_filters[1] + 1) % 3);
@@ -231,7 +253,20 @@ namespace MainProject.Logic
             if (pressedKeys.Contains(Keys.D9) && !prevPressedKeys.Contains(Keys.D9)) UpdateFiltersWithValue(FilterLevel.Linear);
             if (pressedKeys.Contains(Keys.D0) && !prevPressedKeys.Contains(Keys.D0)) UpdateFiltersWithValue(FilterLevel.Anisotropic);
 
-            if (pressedKeys.Contains(Keys.M) && !prevPressedKeys.Contains(Keys.M)) _multiSampling = !_multiSampling;
+            if (pressedKeys.Contains(Keys.M) && !prevPressedKeys.Contains(Keys.M))
+            {
+                _multiSampling = !_multiSampling;
+                _normalMultisamplingState = new RasterizerState
+                {
+                    MultiSampleAntiAlias = _multiSampling,
+                    CullMode = CullMode.CullCounterClockwiseFace
+                };
+                _stationMultisamplingState = new RasterizerState
+                {
+                    MultiSampleAntiAlias = _multiSampling,
+                    CullMode = CullMode.None,
+                };
+            }
 
             if (pressedKeys.Contains(Keys.T) && !prevPressedKeys.Contains(Keys.T))
             {
@@ -239,21 +274,9 @@ namespace MainProject.Logic
 
                 if (obj == null) return;
 
-                _texturedPrimitives[0].ChangeBasicTexture(_textures[obj.ChangesdBasicTexture ? "rock1" : "metal"]);
+                _texturedPrimitives[0].ChangeBasicTexture(_textures[obj.ChangesdBasicTexture ? "rock1" : "rock2"]);
                 obj.ChangesdBasicTexture = !obj.ChangesdBasicTexture;
             }
-            /* ground textures change */
-            //if (pressedKeys.Contains(Keys.T) && !prevPressedKeys.Contains(Keys.T))
-            //{
-            //    if (_ground.Texture1 == _sandTexture)
-            //        _ground.Texture1 = _snowTexture;
-            //    else if (_ground.Texture1 == _snowTexture)
-            //        _ground.Texture1 = _rockTexture;
-            //    else if (_ground.Texture1 == _rockTexture)
-            //        _ground.Texture1 = null;
-            //    else if (_ground.Texture1 == null)
-            //        _ground.Texture1 = _sandTexture;
-            //}
         }
 
         private void UpdateFiltersWithValue(FilterLevel value)
@@ -272,6 +295,27 @@ namespace MainProject.Logic
         {
             ConfigureShader();
             SetUpGraphicDeviceParameters();
+
+            DrawSceneToTexture();
+
+            SetUpGraphicDeviceParameters();
+
+            var x = _graphics.GraphicsDevice.SamplerStates[0];
+
+            var ss = new SamplerState
+            {
+                Filter = TextureFilterFromMinMagMip(_filters),
+                MipMapLevelOfDetailBias = _mipMapLevelOfDetailBias,
+                AddressU = TextureAddressMode.Border,
+                AddressW = TextureAddressMode.Border,
+                AddressV = TextureAddressMode.Border,
+                BorderColor = new Color(Color.Black, 0)
+            };
+            _graphics.GraphicsDevice.SamplerStates[0] = ss;
+            _screen.ChangeBasicTexture(_renderTarget);
+            _screen.Draw(_camera, _effect);
+
+            _graphics.GraphicsDevice.SamplerStates[0] = x;
             DrawScene(_camera);
             
             base.Draw(gameTime);
@@ -281,66 +325,62 @@ namespace MainProject.Logic
         {
             _graphics.GraphicsDevice.Clear(Color.White);
 
-            //_graphics.GraphicsDevice.BlendState = BlendState.AlphaBlend;
-            //var bs = new BlendState
-            //{
-            //    AlphaSourceBlend = Blend.SourceAlphaSaturation,
-            //    AlphaDestinationBlend = Blend.DestinationColor,
-            //    ColorSourceBlend = Blend.DestinationAlpha,
-            //    ColorDestinationBlend = Blend.DestinationAlpha,
-            //    AlphaBlendFunction = BlendFunction.Subtract
-            //};
-            //_graphics.GraphicsDevice.BlendState = bs;
-
             _graphics.PreferMultiSampling = _multiSampling;
             _graphics.GraphicsDevice.PresentationParameters.MultiSampleCount = _multiSampling ? 8 : 0;
-            _graphics.GraphicsDevice.RasterizerState = _isWireframe ? _wireFrameState : new RasterizerState
-            {
-                MultiSampleAntiAlias = _multiSampling,
-                CullMode = CullMode.CullCounterClockwiseFace
-            };
-
+            
             var ss = new SamplerState
             {
                 Filter = TextureFilterFromMinMagMip(_filters),
-                //MaxMipLevel = 255,
-                MaxAnisotropy = 16,
                 MipMapLevelOfDetailBias = _mipMapLevelOfDetailBias,
                 AddressU = TextureAddressMode.Wrap,
                 AddressW = TextureAddressMode.Wrap,
                 AddressV = TextureAddressMode.Wrap
             };
-            
+
             var ss1 = new SamplerState
             {
                 Filter = TextureFilterFromMinMagMip(_filters),
-                //MaxMipLevel = 255,
-                MaxAnisotropy = 16,
                 MipMapLevelOfDetailBias = _mipMapLevelOfDetailBias,
                 AddressU = TextureAddressMode.Wrap,
                 AddressW = TextureAddressMode.Border,
                 AddressV = TextureAddressMode.Border,
                 BorderColor = new Color(Color.Black, 0)
-
             };
 
             _graphics.GraphicsDevice.SamplerStates[0] = ss;
             _graphics.GraphicsDevice.SamplerStates[1] = ss1;
-
-            _graphics.ApplyChanges();
         }
 
         private void DrawScene(Camera camera)
         {
             var originalRasterizeState = _graphics.GraphicsDevice.RasterizerState;
-            _graphics.GraphicsDevice.RasterizerState = _isWireframe ? _wireFrameState : RasterizerState.CullNone;
+            
+            _effect.Parameters["Side"].SetValue(1f);
+            _graphics.GraphicsDevice.RasterizerState = _normalMultisamplingState;
 
-            foreach (var p in _primitives) p.Draw(camera, _effect);
             foreach (var p in _texturedPrimitives) p.Draw(camera, _effect);
+            foreach (var o in _objects) o.Draw(camera, _effect);
+
+            _effect.Parameters["Side"].SetValue(-1f);
+            _graphics.GraphicsDevice.RasterizerState = _wireFrameState;
+
+            foreach (var p in _texturedPrimitives) p.Draw(camera, _effect);
+            foreach (var o in _objects) o.Draw(camera, _effect);
+
+            _graphics.GraphicsDevice.RasterizerState = _stationMultisamplingState;
+            foreach (var p in _primitives) p.Draw(camera, _effect);
 
             _graphics.GraphicsDevice.RasterizerState = originalRasterizeState;
+            _effect.Parameters["Side"].SetValue(0f);
+        }
 
-            foreach (var o in _objects) o.Draw(camera, _effect);
+        private void DrawSceneToTexture()
+        {
+            _graphics.GraphicsDevice.SetRenderTarget(_renderTarget);
+
+            DrawScene(_screenCamera);
+
+            _graphics.GraphicsDevice.SetRenderTarget(null);
         }
 
         private void ConfigureShader()
@@ -367,6 +407,7 @@ namespace MainProject.Logic
 
             _effect.Parameters["AmbientIntensity"].SetValue(0.2f);
             _effect.Parameters["AmbientColor"].SetValue(Color.LightSeaGreen.ToVector4());
+            _effect.Parameters["ClippingPlane"].SetValue(_clippingPlaneZ);
         }
 
         #endregion

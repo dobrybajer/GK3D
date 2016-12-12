@@ -1,5 +1,4 @@
-﻿using MainProject.Logic;
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
 namespace MainProject.Objects

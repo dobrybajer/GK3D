@@ -12,6 +12,9 @@ float3 CameraPosition;
 float4 AmbientColor;
 float AmbientIntensity;
 
+float ClippingPlane;
+float Side;
+
 float	LightType[NUM_LIGHTS];
 float	LightEnabled[NUM_LIGHTS];
 float3	LightDirection[NUM_LIGHTS];
@@ -209,13 +212,16 @@ VertexShaderOutput VertexShaderTexturedFunction(VertexShaderInput input)
 
 float4 PixelShaderTexturedFunction(VertexShaderOutput input) : Color0
 {
+	if (Side > 0)
+		if (input.WorldPosition.z < ClippingPlane)
+			return float4(1, 1, 1, 0);
+
+	if (Side < 0)
+		if (input.WorldPosition.z > ClippingPlane)
+			return float4(1, 1, 1, 0);
+
 	float4 textureColor = tex2Dbias(TextureSampler, input.TextureCoordinate);
 	float alpha = textureColor.a;
-
-	if (alpha == 0.0)
-	{
-		return textureColor;
-	}
 
 	float4 outColor = CalculateLights(input);
 	float4 fogColor = float4(0.2f, 0.2f, 0.2f, 1.0f);
@@ -233,6 +239,14 @@ float4 PixelShaderTexturedFunction(VertexShaderOutput input) : Color0
 
 float4 PixelShaderMultiTexturedFunction(VertexShaderOutput input) : Color0
 {
+	if (Side > 0)
+		if (input.WorldPosition.z < ClippingPlane)
+			return  float4(1, 1, 1, 0);
+
+	if (Side < 0)
+		if (input.WorldPosition.z > ClippingPlane)
+			return float4(1, 1, 1, 0);
+
 	float4 outColor = CalculateLights(input);
 
 	float4 secondTextureColor = tex2Dbias(Texture1Sampler, input.TextureCoordinate);
@@ -242,7 +256,6 @@ float4 PixelShaderMultiTexturedFunction(VertexShaderOutput input) : Color0
 	float4 texturesCompositionColor = alpha * secondTextureColor + (1 - alpha) * textureColor;
 	float4 fogColor = float4(0.2f, 0.2f, 0.2f, 1.0f);
 	float4 finalTextureColor = texturesCompositionColor + outColor + AmbientColor * AmbientIntensity;
-
 
 	return saturate(FogEnabled ? 
 		input.FogFactor * fogColor + (1.0 - input.FogFactor) * finalTextureColor :
@@ -266,24 +279,21 @@ technique Textured
 {
 	pass Pass1
 	{
+		DestBlend = INVSRCALPHA;
+		SrcBlend = SRCALPHA;
+
 		VertexShader = compile vs_3_0 VertexShaderTexturedFunction();
 		PixelShader = compile ps_3_0 PixelShaderTexturedFunction();
 	}
 }
 
-//technique TexturedTranslated
-//{
-//	pass Pass1
-//	{
-//		VertexShader = compile vs_3_0 VertexShaderTexturedTranslatedFunction();
-//		PixelShader = compile ps_3_0 PixelShaderTexturedFunction();
-//	}
-//}
-//
 technique MultiTextured
 {
 	pass Pass1
 	{
+		DestBlend = INVSRCALPHA;
+		SrcBlend = SRCALPHA;
+
 		VertexShader = compile vs_3_0 VertexShaderTexturedFunction();
 		PixelShader = compile ps_3_0 PixelShaderMultiTexturedFunction();
 	}
