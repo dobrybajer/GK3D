@@ -121,7 +121,7 @@ namespace MainProject.Logic
         private void AddObjectsToScene()
         {
             _primitives.Add(new Cube(GraphicsDevice, "Station"));
-            _texturedPrimitives.Add(new TexturedCube(GraphicsDevice, "Platform", _textures["rock1"], _textures["peron"]));
+            _texturedPrimitives.Add(new TexturedCube(GraphicsDevice, "Platform", false, _textures["rock1"], _textures["peron"]));
             _texturedPrimitives.Add(new TexturedFloor(GraphicsDevice, "Ground", false, _textures["ground1"]));
             _screen = new TexturedFloor(GraphicsDevice, "Screen", true);
 

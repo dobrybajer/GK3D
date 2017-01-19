@@ -142,10 +142,10 @@ namespace MainProject.Objects
 
                     AddIndex(id, topLeft);
                     AddIndex(id, bottomRight);
-                    AddIndex(id, bottomLeft);
+                    AddIndex(id, topRight);
 
                     AddIndex(id, topLeft);
-                    AddIndex(id, topRight);
+                    AddIndex(id, bottomLeft);
                     AddIndex(id, bottomRight);
                 }
             }

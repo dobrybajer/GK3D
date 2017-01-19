@@ -18,8 +18,8 @@ namespace MainProject.Config
         #region Camera
 
         public const float CameraSpeed = 2f;
-        public static readonly Vector3 CameraPosition = new Vector3(400f, 0f, 0f); // 400f, 90f, 80f
-        public static readonly Vector3 CameraDirection = new Vector3(-1f, 0f, 0f); // -1f, -0.9f, -0.9f
+        public static readonly Vector3 CameraPosition = new Vector3(0f, 0f, -200f); // 400f, 90f, 80f
+        public static readonly Vector3 CameraDirection = new Vector3(0f, 0f, 1f); // -1f, -0.9f, -0.9f
         public static readonly Vector3 CameraVectorUp = new Vector3(0f, 1f, 0f);
         public static readonly float CameraRotationAngle = MathHelper.PiOver4/150*5;
 
@@ -60,7 +60,18 @@ namespace MainProject.Config
         public static readonly Matrix GroundFloorScaleMatrix = Matrix.CreateScale(GroundFloorScaleXSingle, GroundFloorScaleYSingle, GroundFloorScaleZSingle);
         public static readonly Matrix GroundFloorTranslationMatrix = Matrix.CreateTranslation(0f, -StationCubeSizeSingle / 5, 0);
 
-        // Screen
+        // Screen as Cube
+        public static readonly float ScreenCubeTextureResolutionSingle = 100;
+        public const float ScreenCubeSizeSingle = 100;
+        public static readonly float ScreenCubeScaleXSingle = 1f;
+        public static readonly float ScreenCubeScaleYSingle = 1f;
+        public static readonly float ScreenCubeScaleZSingle = 1f;
+        public static readonly bool ScreenCubeTextureTranslationBoolean = true;
+        public static readonly Matrix ScreenCubeScaleMatrix = Matrix.CreateScale(ScreenCubeScaleXSingle, ScreenCubeScaleYSingle, ScreenCubeScaleZSingle);
+        public static readonly Matrix ScreenCubeTranslationMatrix = Matrix.CreateTranslation(0f, 0f, 0f);
+        public static readonly Matrix ScreenCubeRotationMatrix = Matrix.Identity;
+
+        // Screen as Floor
         public static readonly float ScreenFloorTextureResolutionSingle = 100; // 50
         public const float ScreenFloorSizeSingle = 100;
         public static readonly float ScreenFloorScaleXSingle = 1f;
@@ -68,8 +79,8 @@ namespace MainProject.Config
         public static readonly float ScreenFloorScaleZSingle = 1f;
         public static readonly bool ScreenFloorTextureTranslationBoolean = true; // false
         public static readonly Matrix ScreenFloorScaleMatrix = Matrix.CreateScale(ScreenFloorScaleXSingle, ScreenFloorScaleYSingle, ScreenFloorScaleZSingle);
-        public static readonly Matrix ScreenFloorTranslationMatrix = Matrix.CreateTranslation(200f, 0f, 0f); // -540f, 0f, 70f
-        public static readonly Matrix ScreenFloorRotationMatrix = Matrix.CreateFromYawPitchRoll(MathHelper.ToRadians(90), MathHelper.ToRadians(-90), MathHelper.ToRadians(180f));
+        public static readonly Matrix ScreenFloorTranslationMatrix = Matrix.CreateTranslation(0f, 0f, 0f); // -540f, 0f, 70f
+        public static readonly Matrix ScreenFloorRotationMatrix = Matrix.CreateFromYawPitchRoll(MathHelper.ToRadians(0), MathHelper.ToRadians(-90), MathHelper.ToRadians(180f)); // 90
 
         // Panther
         public static readonly Matrix PantherModelScaleMatrix = Matrix.CreateScale(1f, 1f, 1f);

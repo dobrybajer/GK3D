@@ -12,7 +12,7 @@ namespace MainProject.Objects
 
         #region Constructor 
 
-        public TexturedCube(GraphicsDevice graphicsDevice, string name, Texture texture0 = null, Texture texture1 = null)
+        public TexturedCube(GraphicsDevice graphicsDevice, string name, bool drawLiquid = false, Texture texture0 = null, Texture texture1 = null)
         {
             PreloadingConfig(name, "Cube");
 
@@ -50,6 +50,7 @@ namespace MainProject.Objects
 
             Textures[0] = texture0;
             Textures[1] = texture1;
+            DrawLiquid = drawLiquid;
         }
 
         #endregion
