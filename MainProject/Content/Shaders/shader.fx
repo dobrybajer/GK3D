@@ -319,9 +319,11 @@ float4 PixelShaderLiquidFunction(VertexShaderOutput input) : COLOR0
 
 	float4 fogColor = float4(0.2f, 0.2f, 0.2f, 1.0f);
 
+	float4 finalTextureColor = color + outColor + AmbientColor * AmbientIntensity;
+
 	return saturate(FogEnabled ?
-		input.FogFactor * fogColor + (1.0 - input.FogFactor) * color :
-		color + AmbientColor * AmbientIntensity + outColor);
+		input.FogFactor * fogColor + (1.0 - input.FogFactor) * finalTextureColor :
+		finalTextureColor);
 }
 
 technique TexturedLiquid
