@@ -9,7 +9,7 @@ namespace MainProject.Objects
     {
         #region Constructor
 
-        public TexturedFloor(GraphicsDevice graphicsDevice, string name, Texture texture0 = null, Texture texture1 = null)
+        public TexturedFloor(GraphicsDevice graphicsDevice, string name, bool drawLiquid = false, Texture texture0 = null, Texture texture1 = null)
         {
             PreloadingConfig(name, "Floor");
 
@@ -34,7 +34,8 @@ namespace MainProject.Objects
             InitializePrimitive(graphicsDevice);
 
             Textures[0] = texture0;
-            Textures[1] = texture1;  
+            Textures[1] = texture1;
+            DrawLiquid = drawLiquid;
         }
 
         #endregion

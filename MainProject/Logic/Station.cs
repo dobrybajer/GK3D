@@ -14,7 +14,9 @@ namespace MainProject.Logic
         #region Private fields and properties
 
         private readonly GraphicsDeviceManager _graphics;
-        private Effect _effect; // own shader
+        private SpriteBatch _spriteBatch;
+        private Effect _effect;
+        private Effect _liquidEffect;
         private Camera _camera;
         private Camera _screenCamera;
         private readonly List<ModelObject> _objects = new List<ModelObject>();
@@ -34,6 +36,17 @@ namespace MainProject.Logic
         private readonly Dictionary<string, Texture> _textures = new Dictionary<string, Texture>();
         private float _clippingPlaneZ;
         private RenderTarget2D _renderTarget;
+
+        private bool _switchTargetFlag = true;
+        private bool _resetLiquidTexture = true;
+        private RenderTarget2D _renderTargetLiquid1;
+        private RenderTarget2D _renderTargetLiquid2;
+        
+        private RenderTarget2D CurrentTarget => _switchTargetFlag ? _renderTargetLiquid1 : _renderTargetLiquid2;
+        private RenderTarget2D PreviousTarget => _switchTargetFlag ? _renderTargetLiquid2 : _renderTargetLiquid1;
+
+        private Texture2D _initialTexture;
+        private Texture2D _perlinNoiseTexture;
 
         #endregion
 
@@ -109,8 +122,8 @@ namespace MainProject.Logic
         {
             _primitives.Add(new Cube(GraphicsDevice, "Station"));
             _texturedPrimitives.Add(new TexturedCube(GraphicsDevice, "Platform", _textures["rock1"], _textures["peron"]));
-            _texturedPrimitives.Add(new TexturedFloor(GraphicsDevice, "Ground", _textures["ground1"]));
-            _screen = new TexturedFloor(GraphicsDevice, "Screen");
+            _texturedPrimitives.Add(new TexturedFloor(GraphicsDevice, "Ground", false, _textures["ground1"]));
+            _screen = new TexturedFloor(GraphicsDevice, "Screen", true);
 
             _lights = new List<Light>
             {
@@ -158,7 +171,7 @@ namespace MainProject.Logic
                     SpecularColor = Color.Yellow,
                     SpecularIntensity = 0.3f,
                     SpecularPower = 32,
-                    Enabled = true,
+                    Enabled = false,
                     SpotAngle = MathHelper.ToRadians(1f)
                 }
             };
@@ -175,7 +188,12 @@ namespace MainProject.Logic
             _textures.Add("ground1", Content.Load<Texture>("Textures/ground1"));
             _textures.Add("grass", Content.Load<Texture>("Textures/grass"));
 
+            _initialTexture = Content.Load<Texture2D>("Textures/LiquidTextureInitial");
+            _perlinNoiseTexture = Content.Load<Texture2D>("Textures/perlinNoise");
+
             _effect = Content.Load<Effect>("Shaders/shader");
+            _liquidEffect = Content.Load<Effect>("Shaders/LiquidShader");
+
             _objects.Add(new ModelObject(Content, "Panther", "Model", _textures["matrix1"]));
             _objects.Add(new ModelObject(_objects[0].GetModel(), "Panther", "Model2", _textures["daradevil"]));
             _objects.Add(new ModelObject(Content, "Locomotive", "Model", _textures["metal"]));
@@ -188,13 +206,19 @@ namespace MainProject.Logic
             LoadData();
             AddObjectsToScene();
 
+            _spriteBatch = new SpriteBatch(_graphics.GraphicsDevice);
+
             var pp = _graphics.GraphicsDevice.PresentationParameters;
             _renderTarget = new RenderTarget2D(_graphics.GraphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight, true, _graphics.GraphicsDevice.DisplayMode.Format, DepthFormat.Depth24);
+
+            _renderTargetLiquid1 = new RenderTarget2D(_graphics.GraphicsDevice, _initialTexture.Width, _initialTexture.Height, true, _initialTexture.Format, DepthFormat.Depth24);
+            _renderTargetLiquid2 = new RenderTarget2D(_graphics.GraphicsDevice, _initialTexture.Width, _initialTexture.Height, true, _initialTexture.Format, DepthFormat.Depth24);
         }
 
         protected override void UnloadContent()
         {
             Content.Unload();
+            _renderTarget.Dispose();
         }
 
         #endregion
@@ -229,6 +253,7 @@ namespace MainProject.Logic
             if (pressedKeys.Contains(Keys.D4) && !prevPressedKeys.Contains(Keys.D4)) _lights[3].Enabled = !_lights[3].Enabled;
             if (pressedKeys.Contains(Keys.D5)) _clippingPlaneZ += 1f;
             if (pressedKeys.Contains(Keys.D6)) _clippingPlaneZ -= 1f;
+            if (pressedKeys.Contains(Keys.Enter)) _resetLiquidTexture = true;
         }
 
         private static void UpdateFogParameters(Keys[] pressedKeys, IEnumerable<Keys> prevPressedKeys)
@@ -296,9 +321,10 @@ namespace MainProject.Logic
             ConfigureShader();
             SetUpGraphicDeviceParameters();
 
-            DrawSceneToTexture();
+            //DrawSceneToTexture();
 
-            SetUpGraphicDeviceParameters();
+            //SetUpGraphicDeviceParameters();
+            CreateLiquidText(gameTime);
 
             var x = _graphics.GraphicsDevice.SamplerStates[0];
 
@@ -312,13 +338,65 @@ namespace MainProject.Logic
                 BorderColor = new Color(Color.Black, 0)
             };
             _graphics.GraphicsDevice.SamplerStates[0] = ss;
+            //var stream = File.Create("D:\\GitHub\\GK3D\\MainProject\\Content\\Textures\\xxx.png");
+            //_renderTarget.SaveAsPng(stream, _initialTexture.Width, _initialTexture.Height);
+            //stream.Close();
             _screen.ChangeBasicTexture(_renderTarget);
             _screen.Draw(_camera, _effect);
 
             _graphics.GraphicsDevice.SamplerStates[0] = x;
-            DrawScene(_camera);
+            //DrawScene(_camera);
             
             base.Draw(gameTime);
+        }
+
+        private void CreateLiquidText(GameTime gameTime)
+        {
+            var time = (float) gameTime.TotalGameTime.TotalSeconds;
+            var dt = (float) gameTime.ElapsedGameTime.TotalSeconds;
+
+            var prevWidth = _graphics.PreferredBackBufferWidth;
+            var prevHeight = _graphics.PreferredBackBufferHeight;
+
+            _graphics.PreferredBackBufferWidth = _initialTexture.Width;
+            _graphics.PreferredBackBufferHeight = _initialTexture.Height;
+            _graphics.ApplyChanges();
+
+            var liquidRectangle = new Rectangle(0, 0, _initialTexture.Width, _initialTexture.Height);
+
+            if (_resetLiquidTexture)
+            {
+                _graphics.GraphicsDevice.SetRenderTarget(PreviousTarget);
+
+                _spriteBatch.Begin();
+                _spriteBatch.Draw(_initialTexture, liquidRectangle, Color.White);
+                _spriteBatch.End();
+
+                _renderTarget = PreviousTarget;
+                _resetLiquidTexture = false;
+            }
+
+            _graphics.GraphicsDevice.SetRenderTarget(CurrentTarget);
+
+            _liquidEffect.CurrentTechnique = _liquidEffect.Techniques["LiquidTechnique"];
+            var pixelSize = new Vector2((float) 1/_initialTexture.Width, (float) 1/_initialTexture.Height);
+
+            _liquidEffect.Parameters["PixelSize"].SetValue(pixelSize);
+            _liquidEffect.Parameters["Perlin"].SetValue(_perlinNoiseTexture);
+            _liquidEffect.Parameters["time"].SetValue(time);
+            _liquidEffect.Parameters["dt"].SetValue(dt);
+            
+            _spriteBatch.Begin(0, BlendState.Opaque, null, null, null, _liquidEffect);
+            _spriteBatch.Draw(PreviousTarget, liquidRectangle, Color.White);
+            _spriteBatch.End();
+            
+            _renderTarget = CurrentTarget;
+            _switchTargetFlag = !_switchTargetFlag;
+
+            _graphics.PreferredBackBufferWidth = prevWidth;
+            _graphics.PreferredBackBufferHeight = prevHeight;
+            _graphics.ApplyChanges();
+            _graphics.GraphicsDevice.SetRenderTarget(null);
         }
 
         private void SetUpGraphicDeviceParameters()

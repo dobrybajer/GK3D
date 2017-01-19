@@ -43,7 +43,8 @@ namespace MainProject.Objects
         protected float ScaleZ;
         protected Color Color;
         protected Texture[] Textures;
-        
+        protected bool DrawLiquid = false;
+
         #endregion
 
         #region Preparing operation matrices
@@ -123,7 +124,7 @@ namespace MainProject.Objects
                     var position = new Vector3(pos1, dim2, -pos3);
                     var textureCoordinates = new Vector2(pos1 / TextureResolution, pos3 / TextureResolution);
 
-                    AddVertex(id, i + j * dim1, Vector3.Transform(position, rotation), normal, _translation ? Vector2.Transform(textureCoordinates, Matrix.CreateTranslation(1f,-0.5f,1f)) : textureCoordinates);
+                    AddVertex(id, i + j * dim1, Vector3.Transform(position, rotation), normal, _translation ? Vector2.Transform(textureCoordinates, Matrix.CreateTranslation(0.5f,0.5f,0f)) : textureCoordinates);
                 }
             }
         }
@@ -264,6 +265,13 @@ namespace MainProject.Objects
             effect.Parameters["FogEnabled"].SetValue(AppConfig.FogEnabled ? 1f : 0f);
             effect.Parameters["FogStart"].SetValue(AppConfig.FogStart);
             effect.Parameters["FogEnd"].SetValue(AppConfig.FogEnd);
+
+            if (DrawLiquid)
+            {
+                effect.CurrentTechnique = effect.Techniques["TexturedLiquid"];
+                effect.Parameters["BackgroundColor"].SetValue(Color.Black.ToVector4());
+                effect.Parameters["ForegroundColor"].SetValue(Color.DarkRed.ToVector4());
+            }
 
             foreach (var effectPass in effect.CurrentTechnique.Passes)
             {

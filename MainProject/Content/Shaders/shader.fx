@@ -298,3 +298,37 @@ technique MultiTextured
 		PixelShader = compile ps_3_0 PixelShaderMultiTexturedFunction();
 	}
 }
+
+/*------------------------------------------------------------------------------*/
+/*------------------------------ Liquid ----------------------------------------*/
+/*------------------------------------------------------------------------------*/
+
+float4 BackgroundColor;
+float4 ForegroundColor;
+
+float4 PixelShaderLiquidFunction(VertexShaderOutput input) : COLOR0
+{
+	float4 outColor = CalculateLights(input);
+
+	float intensity = tex2Dbias(TextureSampler, input.TextureCoordinate).r;
+
+	float4 color = float4(0.0f, 0.0f, 0.0f, 1.0f);
+	color.r = (ForegroundColor.r - BackgroundColor.r) * intensity + BackgroundColor.r;
+	color.g = (ForegroundColor.g - BackgroundColor.g) * intensity + BackgroundColor.g;
+	color.b = (ForegroundColor.b - BackgroundColor.b) * intensity + BackgroundColor.b;
+
+	float4 fogColor = float4(0.2f, 0.2f, 0.2f, 1.0f);
+
+	return saturate(FogEnabled ?
+		input.FogFactor * fogColor + (1.0 - input.FogFactor) * color :
+		color + AmbientColor * AmbientIntensity + outColor);
+}
+
+technique TexturedLiquid
+{
+	pass Pass1
+	{
+		VertexShader = compile vs_3_0 VertexShaderTexturedFunction();
+		PixelShader = compile ps_3_0 PixelShaderLiquidFunction();
+	}
+}

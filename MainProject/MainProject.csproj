@@ -67,11 +67,14 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Content\Shaders\LiquidShader.fx" />
     <Content Include="Content\Textures\daradevil.png" />
     <Content Include="Content\Textures\grass.png" />
     <Content Include="Content\Textures\ground1.jpg" />
+    <Content Include="Content\Textures\LiquidTextureInitial.png" />
     <Content Include="Content\Textures\matrix1.jpg" />
     <Content Include="Content\Textures\metal.jpg" />
+    <Content Include="Content\Textures\perlinNoise.jpg" />
     <Content Include="Content\Textures\peron.jpg" />
     <Content Include="Content\Textures\peronsmall.jpg" />
     <Content Include="Content\Textures\rock1.jpg" />
